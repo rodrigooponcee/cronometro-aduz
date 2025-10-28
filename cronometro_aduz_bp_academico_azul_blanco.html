@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cronómetro ADUZ – BP & Académico</title>
+  <style>
+    :root{
+      --azul:#0a4bff; /* azul ADUZ */
+      --azul-osc:#083bcc;
+      --gris:#f4f6fb;
+      --texto:#0b0f1a;
+      --ok:#17a34a;
+      --warn:#eab308;
+      --danger:#dc2626;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+      background:white;color:var(--texto);
+      display:flex;flex-direction:column;min-height:100vh;
+    }
+    header{
+      padding:12px 18px;border-bottom:1px solid #e6e9f3;display:flex;align-items:center;gap:14px;
+    }
+    .logo{width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,var(--azul),#64a1ff);display:grid;place-items:center;color:white;font-weight:800}
+    .brand{font-weight:800;letter-spacing:.3px}
+    .tabs{margin-left:auto;display:flex;gap:8px;background:var(--gris);padding:4px;border-radius:10px}
+    .tab{border:0;background:transparent;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:#42506a}
+    .tab.active{background:white;color:var(--azul);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+
+    .wrap{flex:1;display:flex;min-height:0}
+
+    aside{
+      width:300px;max-width:40vw;border-right:1px solid #e6e9f3;background:var(--gris);padding:12px;overflow:auto
+    }
+    .phase{display:flex;align-items:center;justify-content:space-between;background:white;margin:8px 0;padding:10px 12px;border-radius:10px;border:1px solid #e8ebf5;cursor:pointer}
+    .phase.active{outline:2px solid var(--azul)}
+    .phase small{opacity:.7}
+    .phase input{width:70px}
+
+    main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;gap:16px}
+
+    .screen{font-variant-numeric:tabular-nums; font-weight:900; font-size:min(22vw,220px);line-height:1;color:#0a0a0a}
+    .big-sub{font-weight:700;opacity:.8}
+
+    .controls{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--azul);color:white}
+    .btn.primary:active{transform:translateY(1px)}
+    .btn.ghost{background:white;border:1px solid #e6e9f3}
+    .btn.warn{background:var(--warn);color:#111}
+    .btn.danger{background:var(--danger);color:white}
+
+    .status{display:flex;gap:8px;align-items:center;font-weight:700}
+    .dot{width:10px;height:10px;border-radius:999px}
+
+    .toolbar{display:flex;gap:8px;margin-top:4px;align-items:center;justify-content:space-between}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:2px 6px;color:#3730a3;font-weight:700}
+
+    .edit-times{display:none;margin-top:8px}
+    .editing .edit-times{display:block}
+    .linklike{color:var(--azul);text-decoration:underline;cursor:pointer}
+
+    footer{border-top:1px solid #e6e9f3;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#6b7280}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">A</div>
+    <div class="brand">ADUZ · Cronómetro de Debate</div>
+    <div class="tabs" role="tablist">
+      <button class="tab" data-route="#bp" role="tab" aria-selected="false">BP</button>
+      <button class="tab" data-route="#academico" role="tab" aria-selected="false">Académico</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <aside>
+      <div class="toolbar">
+        <strong id="list-title">Fases</strong>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="toggle-edit" class="linklike" title="Editar tiempos">Editar tiempos</span>
+          <button id="reset-order" class="btn ghost" title="Volver al principio">Inicio</button>
+        </div>
+      </div>
+      <div id="phases"></div>
+      <div class="edit-times">
+        <p style="margin:8px 0 4px;color:#6b7280">Pulsa sobre un tiempo para editarlo. Se guarda al instante.</p>
+        <p style="margin:2px 0 0;color:#6b7280">Atajos: <span class="kbd">S</span> iniciar · <span class="kbd">Espacio</span> pausar/continuar · <span class="kbd">R</span> reiniciar · <span class="kbd">↑/↓</span> fase</p>
+      </div>
+    </aside>
+
+    <main>
+      <div class="big-sub" id="phase-name">—</div>
+      <div class="screen" id="screen">0:00</div>
+      <div class="status" id="poi-wrap" style="display:none">
+        <div class="dot" id="poi-dot"></div>
+        <span id="poi-label">POIs — cerradas</span>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="start">Iniciar</button>
+        <button class="btn ghost" id="pause" disabled>Pausa</button>
+        <button class="btn ghost" id="resume" disabled>Continuar</button>
+        <button class="btn warn" id="next">Siguiente</button>
+        <button class="btn danger" id="reset">Reiniciar</button>
+      </div>
+    </main>
+  </div>
+
+  <footer>
+    <div>Azul & Blanco · Hecho para ADUZ</div>
+    <div>POIs (BP): abiertas entre 1:00 y 6:00</div>
+  </footer>
+
+  <audio id="ding" preload="auto">
+    <source src="data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQACcQAAAAAAABNpbmcgYmVlcAAA" type="audio/mp3">
+  </audio>
+
+  <script>
+    // --- Datos ---
+    const ROUTES = {
+      "#bp": {
+        title: "Formato BP",
+        pois: true,
+        phases: [
+          { id:"pm", name:"Primer Ministro (OG)", t: 7*60 },
+          { id:"lo", name:"Líder de la Oposición (OO)", t: 7*60 },
+          { id:"dpm", name:"Viceministro (OG)", t: 7*60 },
+          { id:"dlo", name:"Viceoposición (OO)", t: 7*60 },
+          { id:"mg", name:"Miembro de Gobierno (CG)", t: 7*60 },
+          { id:"mo", name:"Miembro de Oposición (CO)", t: 7*60 },
+          { id:"gw", name:"Whip de Gobierno (CG)", t: 7*60 },
+          { id:"ow", name:"Whip de Oposición (CO)", t: 7*60 },
+          { id:"gr", name:"Répl. Gobierno", t: 4*60 },
+          { id:"or", name:"Répl. Oposición", t: 4*60 }
+        ]
+      },
+      "#academico": {
+        title: "Formato Académico",
+        pois: false,
+        phases: [
+          { id:"ei-af", name:"Exposición Inicial AF", t: 4*60 },
+          { id:"ec-ec", name:"Examen Cruzado EC", t: 3*60 },
+          { id:"ei-ec", name:"Exposición Inicial EC", t: 4*60 },
+          { id:"ec-af", name:"Examen Cruzado AF", t: 3*60 },
+          { id:"r1-af", name:"Refutación 1 AF", t: 3*60 },
+          { id:"r1-ec", name:"Refutación 1 EC", t: 3*60 },
+          { id:"r2-af", name:"Refutación 2 AF", t: 3*60 },
+          { id:"r2-ec", name:"Refutación 2 EC", t: 3*60 },
+          { id:"rc-af", name:"Refutación Cruzada AF", t: 2*60 },
+          { id:"rc-ec", name:"Refutación Cruzada EC", t: 2*60 },
+          { id:"c-ec", name:"Conclusión EC", t: 2*60 },
+          { id:"c-af", name:"Conclusión AF", t: 2*60 }
+        ]
+      }
+    };
+
+    // Persistencia simple en localStorage
+    const LS_KEY = "aduz-chrono-v1";
+    function loadCustom(){
+      try{ const data = JSON.parse(localStorage.getItem(LS_KEY)||"{}"); return data }catch{ return {} }
+    }
+    function saveCustom(data){
+      localStorage.setItem(LS_KEY, JSON.stringify(data));
+    }
+    const custom = loadCustom();
+
+    // Estado
+    let currentRoute = location.hash in ROUTES ? location.hash : "#academico";
+    let phases = [];
+    let idx = 0;
+    let total = 0; // segundos restantes
+    let timer = null;
+    let paused = false;
+
+    // UI refs
+    const tabs = document.querySelectorAll('.tab');
+    const phasesEl = document.getElementById('phases');
+    const screenEl = document.getElementById('screen');
+    const phaseNameEl = document.getElementById('phase-name');
+    const listTitle = document.getElementById('list-title');
+    const poiWrap = document.getElementById('poi-wrap');
+    const poiDot = document.getElementById('poi-dot');
+    const poiLabel = document.getElementById('poi-label');
+    const ding = document.getElementById('ding');
+
+    const btnStart = document.getElementById('start');
+    const btnPause = document.getElementById('pause');
+    const btnResume = document.getElementById('resume');
+    const btnNext = document.getElementById('next');
+    const btnReset = document.getElementById('reset');
+    const btnResetOrder = document.getElementById('reset-order');
+
+    const toggleEdit = document.getElementById('toggle-edit');
+    const aside = document.querySelector('aside');
+
+    function format(s){
+      const m = Math.floor(s/60);
+      const r = (""+Math.floor(s%60)).padStart(2,'0');
+      return `${m}:${r}`;
+    }
+
+    function mountList(){
+      phasesEl.innerHTML = '';
+      ROUTES[currentRoute].phases.forEach((p,i)=>{
+        const key = `${currentRoute}:${p.id}`;
+        const t = custom[key] ?? p.t;
+        const item = document.createElement('div');
+        item.className = 'phase'+(i===idx?' active':'');
+        item.dataset.index = i;
+        item.innerHTML = `<span>${p.name}</span><small><span class="time-label">${format(t)}</span></small>`;
+        item.addEventListener('click',()=>{ setIndex(i); });
+
+        // Hacer editable el tiempo
+        item.addEventListener('dblclick',()=> makeEditable(item, key, t));
+        phasesEl.appendChild(item);
+      });
+      listTitle.textContent = ROUTES[currentRoute].title;
+    }
+
+    function makeEditable(item, key, t){
+      const small = item.querySelector('small');
+      small.innerHTML = `<input type="text" value="${format(t)}" aria-label="Editar tiempo (mm:ss)">`;
+      const input = small.querySelector('input');
+      input.focus(); input.select();
+      input.addEventListener('blur',save);
+      input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ input.blur(); } });
+      function save(){
+        const v = input.value.trim();
+        const m = /^([0-9]{1,2}):([0-5][0-9])$/.exec(v);
+        if(!m){ small.innerHTML = `<span class="time-label">${format(t)}</span>`; return }
+        const seconds = parseInt(m[1])*60+parseInt(m[2]);
+        custom[key] = seconds; saveCustom(custom); mountRoute();
+      }
+    }
+
+    function mountRoute(){
+      phases = ROUTES[currentRoute].phases.map(p=>({ ...p, t: custom[`${currentRoute}:${p.id}`] ?? p.t }));
+      idx = 0; total = phases[0].t; updateScreen(); mountList(); updatePhaseName(); updatePOI();
+      setActiveTab();
+    }
+
+    function setActiveTab(){
+      tabs.forEach(t=>{ t.classList.toggle('active', t.dataset.route===currentRoute); t.setAttribute('aria-selected', t.dataset.route===currentRoute); });
+    }
+
+    function setIndex(i){
+      stop(); idx = i; total = phases[idx].t; updatePhaseName(); updateScreen(); mountList(); updatePOI();
+    }
+
+    function updatePhaseName(){ phaseNameEl.textContent = phases[idx]?.name || '—'; }
+
+    function updatePOI(){
+      const show = ROUTES[currentRoute].pois;
+      poiWrap.style.display = show ? 'flex' : 'none';
+      if(!show) return;
+      // En BP, abiertas entre 1:00 y 6:00 (de 7:00)
+      const t0 = phases[idx].t;
+      const transcurrido = t0 - total;
+      const abiertas = transcurrido >= 60 && transcurrido < (t0 - 60);
+      poiDot.style.background = abiertas ? 'var(--ok)' : '#9ca3af';
+      poiLabel.textContent = abiertas ? 'POIs — abiertas' : 'POIs — cerradas';
+    }
+
+    function updateScreen(){ screenEl.textContent = format(Math.max(0,total)); }
+
+    function tick(){
+      if(total>0){ total--; updateScreen(); updatePOI(); }
+      if(total===0){ stop(); try{ ding.currentTime=0; ding.play(); }catch{} }
+    }
+
+    function start(){
+      if(timer) return; // ya corriendo
+      if(total<=0) total = phases[idx].t;
+      timer = setInterval(tick, 1000);
+      paused = false; btnPause.disabled=false; btnResume.disabled=true;
+    }
+    function pause(){ if(timer){ clearInterval(timer); timer=null; paused=true; btnPause.disabled=true; btnResume.disabled=false; } }
+    function resume(){ if(!timer){ timer = setInterval(tick,1000); paused=false; btnPause.disabled=false; btnResume.disabled=true; } }
+    function stop(){ if(timer){ clearInterval(timer); timer=null; } btnPause.disabled=true; btnResume.disabled=false; }
+    function next(){ stop(); if(idx < phases.length-1){ idx++; total = phases[idx].t; } updatePhaseName(); updateScreen(); mountList(); updatePOI(); }
+    function reset(){ stop(); total = phases[idx].t; paused=false; btnResume.disabled=true; btnPause.disabled=true; updateScreen(); updatePOI(); }
+
+    // Eventos UI
+    tabs.forEach(t=> t.addEventListener('click',()=>{ location.hash = t.dataset.route; }));
+    window.addEventListener('hashchange',()=>{ currentRoute = location.hash in ROUTES? location.hash : currentRoute; mountRoute(); });
+
+    btnStart.addEventListener('click', start);
+    btnPause.addEventListener('click', pause);
+    btnResume.addEventListener('click', resume);
+    btnNext.addEventListener('click', next);
+    btnReset.addEventListener('click', reset);
+    btnResetOrder.addEventListener('click',()=>{ setIndex(0); });
+
+    toggleEdit.addEventListener('click',()=>{ aside.classList.toggle('editing'); });
+
+    // Teclado
+    window.addEventListener('keydown', (e)=>{
+      if(e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA') return;
+      if(e.key.toLowerCase()==='s'){ start(); }
+      else if(e.key===' '){ e.preventDefault(); (timer? pause(): resume()); }
+      else if(e.key.toLowerCase()==='r'){ reset(); }
+      else if(e.key==='ArrowDown'){ setIndex(Math.min(idx+1, phases.length-1)); }
+      else if(e.key==='ArrowUp'){ setIndex(Math.max(idx-1, 0)); }
+    });
+
+    // Inicial
+    setActiveTab(); mountRoute();
+  </script>
+</body>
+</html>
